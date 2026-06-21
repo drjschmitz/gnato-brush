@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="assets/logo_gnatobrush.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="assets/logo_gnatobrush.jpg">
+<title>GnatoBrush</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --blue:#2d7ef7;--blue-d:#1a5fd4;--blue-glow:rgba(45,126,247,.18);
+  --cyan:#0bc5e0;--green:#13c47a;--green-d:#0a8a54;
+  --red:#f53b5a;--amber:#f5a000;--purple:#8b5cf6;
+  --bg:#ffffff;--surface:#f4f7fb;--surface2:#eaf0fa;--border:#d4dff0;
+  --text:#0d1829;--sub:#5a7299;--muted:#b0c2da;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+.screen{display:none;position:fixed;inset:0;flex-direction:column;align-items:center;overflow-y:auto;padding:24px 20px 40px}
+.screen.active{display:flex}
+h1{font-size:26px;font-weight:800;line-height:1.2;text-align:center;margin-bottom:8px}
+h2{font-size:20px;font-weight:700;margin-bottom:6px;text-align:center}
+p{font-size:14px;color:var(--sub);line-height:1.7;text-align:center}
+.label{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.btn{width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:12px}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-green{background:var(--green-d);color:#fff}
+.btn-ghost{background:var(--surface);color:var(--sub);border:1.5px solid var(--border)}
+.btn-danger{background:#fff0f0;color:#c41230;border:1.5px solid #f5c0c8}
+.card{width:100%;background:var(--surface);border-radius:16px;padding:18px;margin-top:12px;border:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,.3)}
+
+/* ── Profile picker ── */
+.profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:380px;margin-top:8px}
+.profile-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s;position:relative}
+.profile-card:active{background:#263245}
+.profile-avatar{font-size:44px;line-height:1}
+.profile-name{font-size:14px;font-weight:700;text-align:center}
+.profile-sub{font-size:10px;color:var(--muted);text-align:center}
+.profile-streak{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--amber)}
+.profile-pts{position:absolute;top:8px;left:10px;font-size:10px;font-weight:700;color:var(--blue)}
+.profile-add{border:2px dashed var(--border);background:transparent;color:var(--muted)}
+
+/* ── Add member ── */
+.emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}
+.emoji-opt{font-size:32px;padding:8px;border-radius:12px;border:2px solid transparent;cursor:pointer;text-align:center}
+.emoji-opt.picked{border-color:var(--blue);background:var(--surface2)}
+input.name-input{width:100%;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;margin-top:8px}
+input.name-input:focus{outline:none;border-color:var(--blue)}
+.type-row{display:flex;gap:8px;margin-top:12px}
+.type-btn{flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);background:transparent;color:var(--sub);font-size:13px;font-weight:600;cursor:pointer}
+.type-btn.active{border-color:var(--blue);background:var(--surface2);color:var(--blue)}
+
+/* ── App bar ── */
+.app-bar{display:flex;align-items:center;width:100%;max-width:380px;margin-bottom:16px;gap:10px}
+.app-bar-back{background:none;border:none;color:var(--sub);font-size:22px;cursor:pointer;padding:0}
+.app-bar-avatar{font-size:26px;cursor:pointer}
+
+/* ── Instructions ── */
+.instr-step{display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:12px}
+.instr-num{width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.instr-text{font-size:13px;color:var(--sub);line-height:1.6}
+.instr-text strong{color:var(--text)}
+
+/* ── Camera ── */
+#camera-wrap{position:relative;width:100%;max-width:380px;aspect-ratio:3/4;border-radius:20px;overflow:hidden;background:#000;margin:12px 0}
+#camera-video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#camera-guide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#camera-guide svg{width:85%;opacity:.5}
+#camera-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+#btn-capture{width:80px;height:80px;border-radius:50%;border:none;background:transparent;cursor:pointer;margin:8px auto;display:block;padding:0}
+#btn-capture:active{transform:scale(.93)}
+
+/* ── Countdown ── */
+#countdown-num{font-size:80px;font-weight:900;color:var(--blue);line-height:1;margin:16px 0}
+#countdown-bar-wrap{width:100%;max-width:280px;height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:0 auto}
+#countdown-bar{height:100%;background:var(--blue);border-radius:4px;transition:width .9s linear}
+
+/* ── Score + Points ── */
+#score-wrap{position:relative;width:100%;max-width:380px;margin:12px 0}
+#canvas-before,#canvas-blend{border-radius:16px;width:100%;display:block}
+#canvas-blend{position:absolute;top:0;left:0;opacity:.65;border-radius:16px}
+.points-badge{border-radius:16px;padding:16px;text-align:center;margin:12px 0;width:100%}
+.points-num{font-size:52px;font-weight:900;line-height:1}
+.points-sub{font-size:11px;font-weight:700;margin-top:4px;opacity:.8}
+.overlap-bar-wrap{width:100%;height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin:8px 0}
+.overlap-bar-fill{height:100%;border-radius:5px;transition:width .6s ease}
+
+/* ── Timer ring (shared) ── */
+.t-ring-wrap{position:relative;margin:12px auto}
+.t-ring-svg{transform:rotate(-90deg) scaleX(-1);transform-origin:50% 50%;display:block}
+.t-ring-bg{fill:none;stroke:var(--border);stroke-width:14}
+.t-ring-fill{fill:none;stroke:var(--blue);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset .5s linear,stroke .3s;filter:drop-shadow(0 0 6px var(--blue-glow))}
+.t-ring-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.t-ring-sec{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px}
+.t-ring-lbl{font-size:11px;font-weight:700;color:var(--sub);margin-top:4px;text-align:center}
+/* legacy IDs still used in screen-timer */
+#timer-ring-wrap{position:relative;width:200px;height:200px;margin:12px auto}
+#timer-svg{transform:rotate(-90deg) scaleX(-1);transform-origin:50% 50%}
+#timer-ring-bg{fill:none;stroke:var(--border);stroke-width:14}
+#timer-ring{fill:none;stroke:var(--blue);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset .5s linear,stroke .3s;filter:drop-shadow(0 0 6px var(--blue-glow))}
+#timer-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#timer-seconds{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px}
+#timer-zone{font-size:11px;font-weight:700;color:var(--sub);margin-top:4px;text-align:center}
+.zone-bar{display:flex;gap:4px;width:100%;max-width:280px;margin:10px auto}
+.zone-dot{flex:1;height:8px;border-radius:4px;background:var(--border)}
+.zone-dot.done{background:var(--blue)}.zone-dot.active{background:var(--cyan)}
+
+/* ── Dashboard / Report ── */
+.member-tab{padding:7px 12px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--sub)}
+.member-tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.day-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.day-row:last-child{border-bottom:none}
+.day-num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--surface);color:var(--sub);border:1px solid var(--border)}
+.day-num.today{background:var(--blue);color:#fff;border-color:var(--blue)}
+.day-bar-wrap{flex:1;height:8px;border-radius:4px;background:var(--border);overflow:hidden}
+.day-bar-fill{height:100%;border-radius:4px}
+.report-member{background:var(--surface);border-radius:16px;padding:16px;margin-top:10px;border:1px solid var(--border)}
+.report-member-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.hygienist-score{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.hyg-btn{padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--sub);font-size:13px;font-weight:700;cursor:pointer}
+.hyg-btn.sel{border-color:var(--blue);background:var(--surface2);color:var(--blue)}
+.phase-badge{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;display:inline-block}
+.compare-row{display:flex;gap:8px;width:100%;max-width:380px}
+.compare-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.compare-col canvas{width:100%;border-radius:12px;display:block}
+</style>
+</head>
+<body>
+
+<!-- ══ PROFILE PICKER ══════════════════════════════════ -->
+<div class="screen active" id="screen-profiles">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:20px 0 8px">
+      <img src="assets/logo_gnatobrush.jpg" style="width:120px;height:auto;object-fit:contain" alt="GnatoBrush"/>
+      <div style="font-size:26px;font-weight:700;color:#0d2857;letter-spacing:-.5px;line-height:1.1">Gnato Brush</div>
+      <div style="font-size:11px;color:var(--sub);letter-spacing:.3px">powered by Gnato Care</div>
+    </div>
+    <p style="margin-bottom:16px;font-size:13px">Chi si lava i denti oggi?</p>
+    <div class="profile-grid" id="profile-grid"></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-report')" style="margin-top:20px;font-size:13px">📋 Report famiglia</button>
+  </div>
+</div>
+
+<!-- ══ ADD MEMBER ══════════════════════════════════════ -->
+<div class="screen" id="screen-add-member">
+  <div style="width:100%;max-width:380px">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="showScreen('screen-profiles')">←</button>
+      <div style="font-size:16px;font-weight:700">Nuovo membro</div>
+    </div>
+    <div class="label">Avatar</div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <div class="label" style="margin-top:8px">Nome</div>
+    <input class="name-input" id="new-member-name" type="text" placeholder="Es. Marco, Giulia…" maxlength="20"/>
+    <div class="label" style="margin-top:14px">Tipo</div>
+    <div class="type-row">
+      <button class="type-btn active" id="type-adult" onclick="setType('adult')">👤 Adulto</button>
+      <button class="type-btn" id="type-child" onclick="setType('child')">👶 Bambino</button>
+    </div>
+    <button class="btn btn-primary" onclick="saveNewMember()" style="margin-top:24px">Aggiungi →</button>
+  </div>
+</div>
+
+<!-- ══ WELCOME ═════════════════════════════════════════ -->
+<div class="screen" id="screen-welcome">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:380px">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="showScreen('screen-profiles')">←</button>
+      <div style="flex:1;font-size:14px;font-weight:700" id="welcome-name"></div>
+      <span class="app-bar-avatar" id="welcome-avatar" onclick="showScreen('screen-profiles')"></span>
+    </div>
+    <div id="welcome-status" style="text-align:center;margin-bottom:12px"></div>
+    <div class="card" style="text-align:left">
+      <div class="label">Programma</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <div style="display:flex;gap:10px"><span style="font-size:18px">📅</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">7 giorni training</strong> — 2× al giorno: pastiglia → selfie → spazzola</div></div>
+        <div style="display:flex;gap:10px"><span style="font-size:18px">📊</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Verifica mensile</strong> — spazzola → pastiglia → confronta con baseline</div></div>
+        <div style="display:flex;gap:10px"><span style="font-size:18px">🏆</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Punti</strong> — 10 pt ogni 10% di placca in meno rispetto al Giorno 1</div></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="startSession()" style="margin-top:20px;font-size:17px;padding:18px">▶ Inizia sessione</button>
+    <button class="btn btn-ghost" id="btn-force-verify" onclick="startVerifyNow()" style="margin-top:8px;display:none;font-size:13px">📊 Effettua verifica ora</button>
+    <button class="btn btn-ghost" onclick="goToMyDashboard()" style="margin-top:8px">I miei progressi</button>
+    <div id="appointment-row" style="margin-top:10px;font-size:12px;color:var(--sub);text-align:center;cursor:pointer" onclick="setAppointment()"></div>
+    <button class="btn btn-danger" style="margin-top:8px;font-size:12px;padding:10px" onclick="deleteMemberConfirm()">Elimina profilo</button>
+    <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;width:100%;text-align:center">
+      <button id="demo-toggle-btn" onclick="toggleDemo()" style="background:none;border:1px solid #334155;border-radius:20px;color:var(--sub);font-size:11px;padding:6px 14px;cursor:pointer"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INSTRUCTIONS (pastiglia) ═══════════════════════ -->
+<div class="screen" id="screen-instructions">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="abortSession()">←</button>
+      <div style="flex:1;font-size:15px;font-weight:700">Come usare la pastiglia</div>
+      <span id="instr-avatar" style="font-size:24px"></span>
+    </div>
+    <div class="phase-badge" id="instr-phase-badge" style="background:var(--surface2);color:var(--blue)">Pastiglia rivelatrice</div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-bottom:16px">
+      <div class="instr-step">
+        <div class="instr-num">1</div>
+        <div class="instr-text"><strong>Metti la pastiglia in bocca</strong> — non masticare subito, lasciala sciogliere leggermente tra lingua e palato.</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">2</div>
+        <div class="instr-text"><strong>Mastica lentamente per 30 secondi</strong> — distribuisci il succo rosa su tutti i denti con movimenti di lingua.</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">3</div>
+        <div class="instr-text"><strong>Copri tutta la bocca</strong> — superiore, inferiore, guance interne, spazio tra i denti. Aspetta altri 30 secondi.</div>
+      </div>
+      <div class="instr-step">
+        <div class="instr-num">4</div>
+        <div class="instr-text"><strong>Non sciacquare, non bere</strong> — le zone rosa sono la placca. Ora scatta il selfie a bocca aperta con buona luce.</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="proceedToCountdown()">Sciogli la pastiglia →</button>
+  </div>
+</div>
+
+<!-- ══ COUNTDOWN ══════════════════════════════════════ -->
+<div class="screen" id="screen-countdown">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center">
+    <span id="cd-avatar" style="font-size:44px;margin-bottom:6px"></span>
+    <div class="phase-badge" style="background:var(--surface2);color:var(--blue)">Distribuzione pastiglia</div>
+    <p style="margin-bottom:20px;font-size:13px">Superiore · Inferiore · Guance · Spazi interdentali<br><strong style="color:var(--text)">Non sciacquare</strong></p>
+    <!-- Cerchio countdown -->
+    <div class="t-ring-wrap" style="width:200px;height:200px">
+      <svg class="t-ring-svg" width="200" height="200" viewBox="0 0 200 200">
+        <circle class="t-ring-bg" cx="100" cy="100" r="84"/>
+        <circle id="cd-ring" class="t-ring-fill" cx="100" cy="100" r="84" stroke-dasharray="528" stroke-dashoffset="0"/>
+      </svg>
+      <div class="t-ring-time">
+        <div id="countdown-num" style="font-size:62px;font-weight:900;line-height:1;letter-spacing:-3px;color:var(--text)">60</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px">secondi</div>
+      </div>
+    </div>
+    <p style="margin-top:16px;font-size:11px;color:var(--sub)">Poi scatta il selfie a bocca aperta</p>
+  </div>
+</div>
+
+<!-- ══ BASELINE CHOICE ══════════════════════════════════ -->
+<div class="screen" id="screen-baseline-choice">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="abortSession()">←</button>
+      <div style="flex:1;font-size:14px;font-weight:700">Prima valutazione</div>
+      <span id="bc-avatar" style="font-size:24px"></span>
+    </div>
+    <div class="phase-badge" style="background:#e6faf3;color:var(--green-d)">Baseline — Giorno 1</div>
+    <p style="margin:12px 0 24px">Dove stai facendo la valutazione?</p>
+
+    <button class="btn btn-primary" onclick="baselineInStudio()" style="padding:22px;font-size:16px;text-align:left;display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:20px">🏥 In studio con l'igienista</span>
+      <span style="font-size:12px;font-weight:400;opacity:.85">La pastiglia è già stata sciolta — vai direttamente al selfie</span>
+    </button>
+
+    <button class="btn btn-ghost" onclick="baselineAtHome()" style="padding:22px;font-size:16px;text-align:left;display:flex;flex-direction:column;gap:4px;margin-top:12px">
+      <span style="font-size:20px">🏠 A casa</span>
+      <span style="font-size:12px;font-weight:400;opacity:.85">Avvia il timer per sciogliere la pastiglia, poi scatta il selfie</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ BRUSH GUIDE (pre-verifica) ══════════════════════ -->
+<div class="screen" id="screen-brush-guide">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="abortSession()">←</button>
+      <div style="flex:1;font-size:14px;font-weight:700" id="bg-title">Spazzolamento</div>
+      <span id="bg-avatar" style="font-size:24px"></span>
+    </div>
+    <div class="phase-badge" id="bg-phase-badge" style="background:#fff8e6;color:var(--amber)">Controllo a casa</div>
+
+    <!-- Timer ring -->
+    <div class="t-ring-wrap" style="width:180px;height:180px;margin:16px 0 8px">
+      <svg class="t-ring-svg" width="180" height="180" viewBox="0 0 200 200">
+        <circle class="t-ring-bg" cx="100" cy="100" r="84"/>
+        <circle id="bg-ring" class="t-ring-fill" cx="100" cy="100" r="84" stroke-dasharray="528" stroke-dashoffset="0"/>
+      </svg>
+      <div class="t-ring-time">
+        <div id="bg-seconds" class="t-ring-sec">4:00</div>
+        <div id="bg-zone" class="t-ring-lbl">Pronto?</div>
+      </div>
+    </div>
+
+    <div class="zone-bar" style="margin-bottom:4px">
+      <div class="zone-dot" id="bgd0"></div><div class="zone-dot" id="bgd1"></div>
+      <div class="zone-dot" id="bgd2"></div><div class="zone-dot" id="bgd3"></div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:14px;font-size:10px;color:var(--muted);margin-bottom:12px"><span>Sup.Dx</span><span>Sup.Sx</span><span>Inf.Dx</span><span>Inf.Sx</span></div>
+
+    <!-- Istruzioni -->
+    <div class="card" style="width:100%;margin-bottom:10px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="font-size:20px;flex-shrink:0">🪥</span>
+          <div style="font-size:12px">Spazzola <strong style="color:var(--text)">2 minuti per arcata</strong> con movimenti circolari delicati</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <svg width="22" height="22" viewBox="0 0 28 28" fill="none" stroke="var(--blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+            <!-- corpo contenitore (80% scalato, centrato) -->
+            <rect x="2" y="12" width="12" height="10" rx="1.8"/>
+            <!-- banda orizzontale -->
+            <line x1="2" y1="15.5" x2="14" y2="15.5"/>
+            <!-- coperchio aperto -->
+            <path d="M2 12 L3.8 8 Q4.2 6.8 5.2 6.8 L12.5 6.4 Q13.8 6.4 13.8 7.6 L14 11.5 L2 12 Z"/>
+            <!-- filo: curva contenuta nel viewBox -->
+            <path d="M14 13.5 Q18 13 18 17 Q18 22 14.5 22"/>
+          </svg>
+          <div style="font-size:12px">Passa il <strong style="color:var(--text)">filo interdentale</strong> su tutti gli spazi interdentali</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <svg width="22" height="22" viewBox="0 0 18 28" fill="none" stroke-linecap="round" style="flex-shrink:0">
+            <!-- Manico conico blu -->
+            <path d="M6.5 28 L11.5 28 L10 22 L8 22 Z" fill="var(--blue)" stroke="none"/>
+            <ellipse cx="9" cy="21.5" rx="2" ry="1.5" fill="var(--blue)" stroke="none"/>
+            <!-- Filo centrale -->
+            <line x1="9" y1="21" x2="9" y2="1" stroke="var(--blue)" stroke-width="1.4"/>
+            <!-- Setole sinistra -->
+            <line x1="9" y1="3"  x2="2"  y2="2"  stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="5.5" x2="1.5" y2="4.5" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="8"  x2="2"  y2="7"  stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="10.5" x2="1.5" y2="9.5" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="13" x2="2"  y2="12" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="15.5" x2="1.5" y2="14.5" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="18" x2="2"  y2="17" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <!-- Setole destra -->
+            <line x1="9" y1="3"  x2="16" y2="2"  stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="5.5" x2="16.5" y2="4.5" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="8"  x2="16" y2="7"  stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="10.5" x2="16.5" y2="9.5" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="13" x2="16" y2="12" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="15.5" x2="16.5" y2="14.5" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+            <line x1="9" y1="18" x2="16" y2="17" stroke="var(--blue)" stroke-width="0.9" opacity="0.7"/>
+          </svg>
+          <div style="font-size:12px">Usa lo <strong style="color:var(--text)">scovolino</strong> per gli spazi più ampi</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warning -->
+    <div style="background:#fff8e6;border:1px solid #f5c260;border-radius:10px;padding:10px 12px;width:100%;margin-bottom:14px">
+      <div style="font-size:11px;color:#7a4a00;line-height:1.6">
+        ⚠️ <strong>Non premere sulle gengive</strong> — il movimento deve essere leggero<br>
+        ⚠️ <strong>Evita spazzolini con setole dure</strong> — usa setole morbide o medie
+      </div>
+    </div>
+
+    <button id="bg-start-btn" class="btn btn-primary" onclick="startBrushGuideTimer()" style="font-size:16px;padding:16px">▶ Inizia spazzolamento</button>
+    <button id="bg-demo-skip" class="btn btn-ghost" onclick="brushGuideDone()" style="margin-top:6px;font-size:12px;padding:10px;display:none">⚡ DEMO — salta timer</button>
+  </div>
+</div>
+
+<!-- ══ CAMERA ══════════════════════════════════════════ -->
+<div class="screen" id="screen-camera">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="abortSession()">←</button>
+      <div style="flex:1"><div class="label" id="camera-label">SELFIE</div><div id="camera-sublabel" style="font-size:13px;font-weight:600"></div></div>
+      <span id="cam-avatar" style="font-size:24px"></span>
+      <button onclick="document.getElementById('color-info-modal').style.display='flex'" style="background:var(--surface2);border:1.5px solid var(--blue);color:var(--blue);width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:8px">i</button>
+    </div>
+    <div id="camera-wrap">
+      <video id="camera-video" autoplay playsinline muted></video>
+      <div id="camera-guide"><svg viewBox="0 0 300 400" fill="none"><ellipse cx="150" cy="190" rx="120" ry="160" stroke="white" stroke-width="2" stroke-dasharray="8 6"/><line x1="120" y1="235" x2="180" y2="235" stroke="white" stroke-width="2"/></svg></div>
+      <div id="camera-hint">Bocca aperta · buona luce</div>
+    </div>
+    <button id="btn-capture" onclick="capturePhoto()">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+        <!-- bordo esterno rosso -->
+        <circle cx="40" cy="40" r="38" fill="#e8003a"/>
+        <!-- zona bianca -->
+        <circle cx="40" cy="40" r="31" fill="#ffffff"/>
+        <!-- centro blu -->
+        <circle cx="40" cy="40" r="22" fill="var(--blue)"/>
+      </svg>
+    </button>
+    <p style="font-size:11px;margin-top:4px">Tocca per scattare</p>
+  </div>
+</div>
+
+<!-- ══ SCORE ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-score">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div class="app-bar">
+      <span id="score-avatar" style="font-size:24px"></span>
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--sub)" id="score-name-lbl"></div>
+      <div class="phase-badge" id="score-phase-badge" style="background:#e6faf3;color:var(--green-d);margin:0">Baseline</div>
+    </div>
+
+    <!-- Overlay placca -->
+    <div id="score-wrap"><canvas id="canvas-before"></canvas><canvas id="canvas-blend"></canvas></div>
+    <p style="font-size:10px;color:var(--muted);margin-top:4px">Evidenziate in rosa le zone con placca</p>
+
+    <!-- Punti (solo in verifica) -->
+    <div id="points-section" style="display:none;width:100%">
+      <div class="points-badge" id="points-badge">
+        <div class="points-num" id="points-num">0</div>
+        <div class="points-sub">PUNTI</div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;text-align:center">Sovrapposizione con baseline</div>
+      <div class="overlap-bar-wrap"><div class="overlap-bar-fill" id="overlap-bar-fill"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+        <span>0% (perfetto)</span><span id="overlap-pct-lbl"></span><span>100% (come baseline)</span>
+      </div>
+    </div>
+
+    <!-- Baseline info (solo in training) -->
+    <div id="baseline-section" style="display:none;width:100%;text-align:center;padding:12px 0">
+      <div style="font-size:12px;color:var(--sub)">Placca rilevata: <strong id="baseline-pct-lbl" style="color:var(--text)"></strong></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Questo è il tuo punto di partenza — baseline salvata</div>
+    </div>
+
+    <!-- Confronto immagini (verifica) -->
+    <div id="compare-section" style="display:none;width:100%;margin-top:8px">
+      <div class="label" style="text-align:center;margin-bottom:8px">Baseline → Oggi</div>
+      <div class="compare-row">
+        <div class="compare-col"><canvas id="canvas-baseline-thumb"></canvas><span class="label">Giorno 1</span></div>
+        <div class="compare-col" style="flex:0;padding:0 4px;justify-content:center"><div style="font-size:24px;color:var(--sub)">→</div></div>
+        <div class="compare-col"><canvas id="canvas-today-thumb"></canvas><span class="label">Oggi</span></div>
+      </div>
+    </div>
+
+    <div id="score-msg" style="font-size:13px;color:var(--sub);text-align:center;margin:10px 0"></div>
+    <button class="btn btn-green" id="btn-after-score" onclick="afterScore()">🦷 Inizia spazzolamento →</button>
+    <button class="btn btn-ghost" onclick="showScreen('screen-profiles')" style="margin-top:4px">Torna ai profili</button>
+  </div>
+</div>
+
+<!-- ══ TIMER ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-timer">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center">
+    <div class="app-bar">
+      <span id="timer-avatar" style="font-size:24px"></span>
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--sub)" id="timer-name-lbl"></div>
+    </div>
+    <div class="phase-badge" style="background:#fff8e6;color:var(--amber)">Spazzolamento guidato</div>
+    <div id="timer-ring-wrap">
+      <svg id="timer-svg" width="200" height="200" viewBox="0 0 200 200">
+        <circle id="timer-ring-bg" cx="100" cy="100" r="88"/>
+        <circle id="timer-ring" cx="100" cy="100" r="88" stroke-dasharray="553" stroke-dashoffset="0"/>
+      </svg>
+      <div id="timer-time"><div id="timer-seconds">2:00</div><div id="timer-zone">Pronto?</div></div>
+    </div>
+    <div class="zone-bar"><div class="zone-dot" id="zd0"></div><div class="zone-dot" id="zd1"></div><div class="zone-dot" id="zd2"></div><div class="zone-dot" id="zd3"></div></div>
+    <div style="display:flex;justify-content:center;gap:14px;font-size:10px;color:var(--muted);margin-top:4px"><span>Sup.Dx</span><span>Sup.Sx</span><span>Inf.Dx</span><span>Inf.Sx</span></div>
+    <div id="timer-instruction" style="text-align:center;margin-top:14px;font-size:13px;color:var(--sub);min-height:36px;line-height:1.5"></div>
+    <button id="btn-timer-start" class="btn btn-primary" onclick="startTimer()" style="margin-top:16px">▶ Inizia</button>
+    <button id="btn-timer-skip" class="btn btn-ghost" onclick="skipTimer()" style="margin-top:6px;font-size:12px;padding:10px">Salta (test)</button>
+  </div>
+</div>
+
+<!-- ══ DONE ════════════════════════════════════════════ -->
+<div class="screen" id="screen-done">
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center">
+    <div style="font-size:72px;margin-bottom:12px" id="done-emoji">✅</div>
+    <h1 id="done-title">Sessione completata!</h1>
+    <p id="done-msg" style="margin:10px 0 16px"></p>
+    <div class="card" id="done-summary"></div>
+    <button class="btn btn-primary" onclick="goToMyDashboard()" style="margin-top:20px">📊 I miei progressi</button>
+    <button class="btn btn-ghost" onclick="showScreen('screen-profiles')" style="margin-top:8px">Cambia profilo</button>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══════════════════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div style="width:100%;max-width:380px">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="dashBack()">←</button>
+      <h2 style="text-align:left;margin:0;flex:1">I miei progressi</h2>
+      <span id="dash-avatar" style="font-size:24px"></span>
+    </div>
+    <div class="card" id="dash-info" style="text-align:center;margin-bottom:4px"></div>
+    <div class="card" id="dashboard-days"></div>
+    <div class="card" style="margin-top:4px">
+      <div class="label">Punteggio nel tempo</div>
+      <canvas id="chart-canvas" width="340" height="110" style="margin-top:8px;width:100%"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REPORT FAMIGLIA ════════════════════════════════ -->
+<div class="screen" id="screen-report">
+  <div style="width:100%;max-width:380px">
+    <div class="app-bar">
+      <button class="app-bar-back" onclick="showScreen('screen-profiles')">←</button>
+      <h2 style="text-align:left;margin:0;flex:1">Report famiglia</h2>
+    </div>
+    <p style="font-size:11px;margin-bottom:16px">Riepilogo mensile — da mostrare all'igienista</p>
+    <div id="report-content"></div>
+
+    <!-- Valutazione igienista -->
+    <div class="card" id="hygienist-section" style="margin-top:8px">
+      <div class="label">Valutazione igienista</div>
+      <p style="font-size:11px;margin-bottom:10px">Seleziona il membro e inserisci il punteggio gengive (0=depositi visibili · 10=nessun deposito)</p>
+      <div id="hyg-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div class="hygienist-score" id="hyg-score-btns"></div>
+      <button class="btn btn-primary" onclick="saveHygienistScore()" style="margin-top:10px;padding:10px;font-size:13px">Salva valutazione</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════
+const CONFIG = {
+  demo:              false, // true = salta attese, solo per demo
+  countdownSec:      60,
+  brushingSec:       120,  // timer post-baseline (2 min)
+  brushingVerifySec: 240,  // timer pre-verifica (4 min)
+  trainingDays:  7,
+  verifyDays:    28,   // giorni tra una verifica mensile e la successiva
+  zones: ['Superiore Destra','Superiore Sinistra','Inferiore Destra','Inferiore Sinistra'],
+  plaque: {
+    // Eritrosina / monotono (rosa-fucsia)
+    minR: 120, rOverG: 1.25, rOverB: 1.15,
+    // Bitono GBT — biofilm vecchio (blu/viola): B dominante o viola (R+B alti, G basso)
+    minB: 100, bOverR: 1.15, bOverG: 1.10,      // blu puro
+    violetMinRB: 80, violetMaxG: 0.80,            // viola: R e B ≥80, G < 80% di entrambi
+  },
+};
+const ZONE_INSTR = [
+  'Esterno + Interno + Occlusale\nSuperiore Destra',
+  'Esterno + Interno + Occlusale\nSuperiore Sinistra',
+  'Esterno + Interno + Occlusale\nInferiore Destra',
+  'Esterno + Interno + Occlusale\nInferiore Sinistra',
+];
+const AVATARS = ['😀','😁','😎','🤩','🥸','🧑','👦','👧','👩','👨','🧒','🧑‍🦱','🧑‍🦰','🧑‍🦳','👴','👵','🐶','🐱','🦁','🐻'];
+
+// ══════════════════════════════════════════════════════
+// STORAGE — per-profile
+// ══════════════════════════════════════════════════════
+function getProfiles()           { try{return JSON.parse(localStorage.getItem('gbrush_profiles')||'[]')}catch(e){return[]} }
+function saveProfiles(p)         { localStorage.setItem('gbrush_profiles', JSON.stringify(p)) }
+function getProfile(id)          { return getProfiles().find(p=>p.id===id)||null }
+function getUserLog(id)          { try{return JSON.parse(localStorage.getItem('gbl_'+id)||'[]')}catch(e){return[]} }
+function appendLog(id,e)         { const l=getUserLog(id);l.push(e);localStorage.setItem('gbl_'+id,JSON.stringify(l)) }
+function getUserBaseline(id)     { try{return JSON.parse(localStorage.getItem('gbbl_'+id)||'null')}catch(e){return null} }
+function setUserBaseline(id,d)   { localStorage.setItem('gbbl_'+id,JSON.stringify(d)) }
+function deleteUserData(id)      { localStorage.removeItem('gbl_'+id);localStorage.removeItem('gbbl_'+id) }
+
+// ══════════════════════════════════════════════════════
+// PHASE LOGIC
+// ══════════════════════════════════════════════════════
+function getPhase(uid) {
+  const bl = getUserBaseline(uid);
+  if (!bl) return 'baseline';
+  if (CONFIG.demo) {
+    // In demo: dopo la baseline è subito disponibile la verifica
+    const log = getUserLog(uid);
+    const verifies = log.filter(e=>e.phase==='verify');
+    if (!verifies.length) return 'verify';
+    // Dopo ogni verifica demo torna subito disponibile la successiva
+    return 'verify';
+  }
+  const log = getUserLog(uid);
+  const day = getDayNum(uid);
+  if (day <= CONFIG.trainingDays) return 'training';
+  const verifies = log.filter(e=>e.phase==='verify');
+  if (!verifies.length) return 'verify';
+  const lastVerify = new Date(verifies[verifies.length-1].ts);
+  const daysSince = (Date.now()-lastVerify)/86400000;
+  return daysSince >= CONFIG.verifyDays ? 'verify' : 'training';
+}
+
+function getDayNum(uid) {
+  const log = getUserLog(uid);
+  if (!log.length) return 1;
+  const first = new Date(log[0].ts); first.setHours(0,0,0,0);
+  const now   = new Date();           now.setHours(0,0,0,0);
+  return Math.floor((now-first)/86400000)+1;
+}
+
+function getStreak(uid) {
+  const log = getUserLog(uid);
+  if (!log.length) return 0;
+  let streak=0, d=new Date(); d.setHours(0,0,0,0);
+  while(true){
+    if(log.some(e=>{ const ed=new Date(e.ts); ed.setHours(0,0,0,0); return ed.getTime()===d.getTime(); }))
+      { streak++; d.setDate(d.getDate()-1); } else break;
+  }
+  return streak;
+}
+
+function getBestPoints(uid) {
+  const log = getUserLog(uid);
+  const vs = log.filter(e=>e.phase==='verify'&&e.points!=null);
+  return vs.length ? Math.max(...vs.map(e=>e.points)) : null;
+}
+
+// ══════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if (id==='screen-profiles')  renderProfiles();
+  if (id==='screen-dashboard') renderDashboard();
+  if (id==='screen-report')    renderReport();
+}
+
+// ══════════════════════════════════════════════════════
+// PROFILES
+// ══════════════════════════════════════════════════════
+let _newMemberEmoji = AVATARS[0], _newMemberType = 'adult';
+
+function renderProfiles() {
+  const profiles = getProfiles();
+  document.getElementById('profile-grid').innerHTML = profiles.map(p => {
+    const streak = getStreak(p.id);
+    const pts    = getBestPoints(p.id);
+    const log    = getUserLog(p.id);
+    const today  = log.filter(e=>new Date(e.ts).toDateString()===new Date().toDateString()).length;
+    return `<div class="profile-card" onclick="selectProfile('${p.id}')">
+      ${streak>1?`<div class="profile-streak">🔥${streak}</div>`:''}
+      ${pts!=null?`<div class="profile-pts">🏆${pts}</div>`:''}
+      <div class="profile-avatar">${p.avatar}</div>
+      <div class="profile-name">${p.name}</div>
+      <div class="profile-sub">${today?today+'× oggi':log.length?log.length+' sessioni':'Inizia!'}</div>
+    </div>`;
+  }).join('') +
+  `<div class="profile-card profile-add" onclick="openAddMember()">
+    <div style="font-size:36px">＋</div><div style="font-size:12px;font-weight:600">Aggiungi</div>
+  </div>`;
+}
+
+function openAddMember() {
+  _newMemberEmoji = AVATARS[0]; _newMemberType = 'adult';
+  document.getElementById('new-member-name').value = '';
+  document.getElementById('emoji-grid').innerHTML = AVATARS.map((e,i)=>
+    `<div class="emoji-opt${i===0?' picked':''}" onclick="pickEmoji(this,'${e}')">${e}</div>`).join('');
+  document.getElementById('type-adult').className='type-btn active';
+  document.getElementById('type-child').className='type-btn';
+  showScreen('screen-add-member');
+}
+
+function pickEmoji(el,emoji) {
+  document.querySelectorAll('.emoji-opt').forEach(e=>e.classList.remove('picked'));
+  el.classList.add('picked'); _newMemberEmoji=emoji;
+}
+
+function setType(t) {
+  _newMemberType=t;
+  document.getElementById('type-adult').className='type-btn'+(t==='adult'?' active':'');
+  document.getElementById('type-child').className='type-btn'+(t==='child'?' active':'');
+}
+
+function saveNewMember() {
+  const name = document.getElementById('new-member-name').value.trim();
+  if (!name) { document.getElementById('new-member-name').focus(); return; }
+  const profiles = getProfiles();
+  const id = 'u'+Date.now();
+  profiles.push({ id, name, avatar:_newMemberEmoji, type:_newMemberType, created:new Date().toISOString() });
+  saveProfiles(profiles);
+  showScreen('screen-profiles');
+}
+
+// ══════════════════════════════════════════════════════
+// SELECT PROFILE → WELCOME
+// ══════════════════════════════════════════════════════
+let _currentUid = null;
+
+function selectProfile(uid) {
+  _currentUid = uid;
+  const p = getProfile(uid);
+  document.getElementById('welcome-name').textContent = p.name;
+  document.getElementById('welcome-avatar').textContent = p.avatar;
+  const phase = getPhase(uid);
+  const day   = getDayNum(uid);
+  const streak= getStreak(uid);
+  const pts   = getBestPoints(uid);
+  const statusEl = document.getElementById('welcome-status');
+  const demoBadge = CONFIG.demo ? `<span style="background:#92400e;color:#fcd34d;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">DEMO</span>` : '';
+  if (phase==='baseline') {
+    statusEl.innerHTML = `<span style="color:var(--sub);font-size:13px">Prima sessione — creeremo la tua baseline 📍</span>${demoBadge}`;
+  } else if (phase==='training') {
+    statusEl.innerHTML = `<span style="font-size:13px;color:var(--sub)">Giorno <strong style="color:var(--text)">${day}</strong> / ${CONFIG.trainingDays} ${streak>1?'· 🔥'+streak:''}${pts!=null?' · 🏆'+pts+' pt':''}</span>${demoBadge}`;
+  } else {
+    statusEl.innerHTML = `<span style="font-size:13px;color:var(--amber);font-weight:700">📅 Verifica mensile disponibile!</span>${demoBadge}`;
+  }
+  // Mostra il pulsante verifica manuale se esiste già una baseline (ma non è la fase verify automatica)
+  const hasBaseline = !!getUserBaseline(uid);
+  document.getElementById('btn-force-verify').style.display = (hasBaseline && phase !== 'verify') ? 'block' : 'none';
+  updateDemoBtn();
+  // Appuntamento igienista
+  const appt = p.nextAppointment;
+  const apptRow = document.getElementById('appointment-row');
+  if (appt) {
+    const d = new Date(appt), today = new Date();
+    d.setHours(0,0,0,0); today.setHours(0,0,0,0);
+    const past = d <= today;
+    apptRow.innerHTML = past
+      ? `📋 Richiamo igiene passato — <span style="color:var(--amber)">inserisci valutazione nel report</span>`
+      : `📅 Prossimo richiamo: <strong style="color:var(--text)">${d.toLocaleDateString('it-IT')}</strong> — <span style="color:var(--blue)">modifica</span>`;
+  } else {
+    apptRow.innerHTML = `📅 <span style="color:var(--blue)">Imposta data prossimo richiamo igiene</span>`;
+  }
+  showScreen('screen-welcome');
+}
+
+function toggleDemo() {
+  CONFIG.demo = !CONFIG.demo;
+  selectProfile(_currentUid);
+}
+
+function updateDemoBtn() {
+  const btn = document.getElementById('demo-toggle-btn');
+  if (!btn) return;
+  if (CONFIG.demo) {
+    btn.textContent = '🟠 MODALITÀ DEMO attiva — tocca per disattivare';
+    btn.style.borderColor = '#f59e0b';
+    btn.style.color = '#f59e0b';
+  } else {
+    btn.textContent = '⚙️ Attiva modalità demo';
+    btn.style.borderColor = '#334155';
+    btn.style.color = 'var(--sub)';
+  }
+}
+
+function setAppointment() {
+  const p = getProfile(_currentUid);
+  if (!p) return;
+  const cur = p.nextAppointment ? p.nextAppointment.slice(0,10) : '';
+  const val = prompt('Data prossimo richiamo di igiene (gg/mm/aaaa):', cur ? new Date(cur).toLocaleDateString('it-IT') : '');
+  if (val === null) return;
+  if (!val.trim()) { const profiles=getProfiles(); const pr=profiles.find(x=>x.id===_currentUid); if(pr){delete pr.nextAppointment; saveProfiles(profiles);} selectProfile(_currentUid); return; }
+  // Accetta gg/mm/aaaa o yyyy-mm-dd
+  let d;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(val.trim())) {
+    const [dd,mm,yyyy] = val.trim().split('/');
+    d = new Date(yyyy+'-'+mm+'-'+dd);
+  } else {
+    d = new Date(val.trim());
+  }
+  if (isNaN(d.getTime())) { alert('Formato non valido — usa gg/mm/aaaa'); return; }
+  const profiles = getProfiles(); const pr = profiles.find(x=>x.id===_currentUid);
+  if (pr) { pr.nextAppointment = d.toISOString().slice(0,10); saveProfiles(profiles); }
+  selectProfile(_currentUid);
+}
+
+function deleteMemberConfirm() {
+  const p = getProfile(_currentUid);
+  if (!p || !confirm(`Eliminare il profilo di ${p.name}?`)) return;
+  deleteUserData(_currentUid);
+  saveProfiles(getProfiles().filter(x=>x.id!==_currentUid));
+  _currentUid=null; showScreen('screen-profiles');
+}
+
+function goToMyDashboard() { _dashUid=_currentUid; showScreen('screen-dashboard'); }
+
+// ══════════════════════════════════════════════════════
+// SESSION
+// ══════════════════════════════════════════════════════
+let _state = { phase:null, step:null, imgPre:null, imgPost:null, stream:null };
+let _timerInterval=null, _countdownInterval=null, _audioCtx=null;
+
+function getSessionLabel(uid, phase) {
+  if (phase === 'baseline') return 'Prima valutazione — Baseline';
+  if (phase === 'training') return 'Training Giorno ' + getDayNum(uid);
+  // verify: conta le verifiche già nel log
+  const n = getUserLog(uid).filter(e => e.phase === 'verify').length + 1;
+  return 'Controllo a casa ' + n;
+}
+
+function showBrushGuide() {
+  const p = getProfile(_currentUid);
+  document.getElementById('bg-avatar').textContent = p ? p.avatar : '';
+  const label = getSessionLabel(_currentUid, _state.phase);
+  document.getElementById('bg-phase-badge').textContent = label;
+  document.getElementById('bg-title').textContent = 'Spazzolamento';
+  document.getElementById('bg-seconds').textContent = '4:00';
+  document.getElementById('bg-zone').textContent = 'Pronto?';
+  document.getElementById('bg-ring').style.strokeDashoffset = '0';
+  for (let i=0;i<4;i++) document.getElementById('bgd'+i).className='zone-dot';
+  document.getElementById('bg-start-btn').style.display = 'block';
+  document.getElementById('bg-demo-skip').style.display = CONFIG.demo ? 'block' : 'none';
+  clearInterval(_bgTimerInterval);
+  showScreen('screen-brush-guide');
+}
+
+let _bgTimerInterval = null;
+
+function startBrushGuideTimer() {
+  if (CONFIG.demo) { brushGuideDone(); return; }
+  document.getElementById('bg-start-btn').style.display = 'none';
+  document.getElementById('bg-demo-skip').style.display = 'none';
+  let elapsed = 0;
+  const total = CONFIG.brushingVerifySec, zs = total / 4, circ = 528;
+  const ring = document.getElementById('bg-ring');
+  _bgTimerInterval = setInterval(() => {
+    elapsed++;
+    const rem = total - elapsed, mm = Math.floor(rem/60), ss = rem%60;
+    document.getElementById('bg-seconds').textContent = mm+':'+String(ss).padStart(2,'0');
+    ring.style.strokeDashoffset = circ * (elapsed/total);
+    const zone = Math.min(3, Math.floor(elapsed/zs)), zp = (elapsed%zs)/zs;
+    document.getElementById('bg-zone').textContent = CONFIG.zones[zone];
+    for (let i=0;i<4;i++) document.getElementById('bgd'+i).className='zone-dot'+(i<zone?' done':i===zone?' active':'');
+    if (elapsed>0 && elapsed%zs===0 && elapsed<total) { beep(880,200); beep(1100,150,260); }
+    if (elapsed >= total) { clearInterval(_bgTimerInterval); beep(660,300); beep(880,300,350); brushGuideDone(); }
+  }, 1000);
+}
+
+function brushGuideDone() {
+  clearInterval(_bgTimerInterval);
+  // Dopo lo spazzolamento: istruzioni pastiglia → countdown → selfie
+  showInstructions('post');
+}
+
+function showBaselineChoice() {
+  const p = getProfile(_currentUid);
+  document.getElementById('bc-avatar').textContent = p ? p.avatar : '';
+  showScreen('screen-baseline-choice');
+}
+
+function baselineInStudio() {
+  // Pastiglia già sciolta dall'igienista: vai direttamente al selfie
+  openCamera('post');
+}
+
+function baselineAtHome() {
+  // A casa: istruzioni pastiglia → countdown → selfie
+  showInstructions('post');
+}
+
+function startVerifyNow() {
+  _state = { phase:'verify', step:null, imgPre:null, imgPost:null, stream:null };
+  showBrushGuide();
+}
+
+function startSession() {
+  const phase = getPhase(_currentUid);
+  _state = { phase, step:null, imgPre:null, imgPost:null, stream:null };
+  if (phase === 'baseline') {
+    showBaselineChoice();
+  } else {
+    // training e verify: prima lo spazzolamento
+    showBrushGuide();
+  }
+}
+
+function abortSession() { stopCamera(); showScreen('screen-welcome'); }
+
+// ══════════════════════════════════════════════════════
+// INSTRUCTIONS SCREEN
+// ══════════════════════════════════════════════════════
+let _instrNextStep = null;
+
+function showInstructions(nextStep) {
+  _instrNextStep = nextStep;
+  const p = getProfile(_currentUid);
+  document.getElementById('instr-avatar').textContent = p ? p.avatar : '';
+  document.getElementById('instr-phase-badge').textContent = getSessionLabel(_currentUid, _state.phase);
+  showScreen('screen-instructions');
+}
+
+function proceedToCountdown() {
+  startCountdown(_instrNextStep);
+}
+
+// ══════════════════════════════════════════════════════
+// COUNTDOWN
+// ══════════════════════════════════════════════════════
+function startCountdown(nextStep) {
+  if (CONFIG.demo) { openCamera(nextStep); return; }
+  let secs = CONFIG.countdownSec;
+  const circ = 528; // 2π×84
+  const p = getProfile(_currentUid);
+  document.getElementById('cd-avatar').textContent = p ? p.avatar : '🦷';
+  showScreen('screen-countdown');
+  const numEl=document.getElementById('countdown-num'), ringEl=document.getElementById('cd-ring');
+  numEl.textContent=secs; ringEl.style.strokeDashoffset='0';
+  clearInterval(_countdownInterval);
+  _countdownInterval=setInterval(()=>{
+    secs--; numEl.textContent=secs;
+    ringEl.style.strokeDashoffset = circ*(1 - secs/CONFIG.countdownSec);
+    if(secs<=0){ clearInterval(_countdownInterval); openCamera(nextStep); }
+  },1000);
+}
+
+// ══════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════
+const CAMERA_LABELS = {
+  'post': { label:'SELFIE — DOPO PASTIGLIA', sub:'Bocca aperta · mostra tutti i denti' },
+};
+
+function openCamera(step) {
+  _state.step=step;
+  const p=getProfile(_currentUid);
+  const l=CAMERA_LABELS[step]||{label:'SELFIE',sub:''};
+  document.getElementById('camera-label').textContent=l.label;
+  document.getElementById('camera-sublabel').textContent=l.sub;
+  document.getElementById('cam-avatar').textContent=p?p.avatar:'';
+  showScreen('screen-camera');
+  const constraints = {video:{facingMode:{ideal:'user'}},audio:false};
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream=>{ _state.stream=stream; document.getElementById('camera-video').srcObject=stream; })
+    .catch(()=>{
+      // fallback: qualsiasi fotocamera disponibile
+      navigator.mediaDevices.getUserMedia({video:true,audio:false})
+        .then(stream=>{ _state.stream=stream; document.getElementById('camera-video').srcObject=stream; })
+        .catch(err=>alert('Fotocamera non disponibile:\n'+err.message));
+    });
+}
+
+function stopCamera() {
+  if(_state.stream){ _state.stream.getTracks().forEach(t=>t.stop()); _state.stream=null; }
+}
+
+function capturePhoto() {
+  const video=document.getElementById('camera-video');
+  const canvas=document.createElement('canvas');
+  canvas.width=video.videoWidth||640; canvas.height=video.videoHeight||480;
+  const ctx=canvas.getContext('2d');
+  ctx.save(); ctx.scale(-1,1); ctx.drawImage(video,-canvas.width,0,canvas.width,canvas.height); ctx.restore();
+  const dataUrl=canvas.toDataURL('image/jpeg',0.82);
+  stopCamera();
+  if(_state.step==='post') { _state.imgPost=dataUrl; analyzeAndShowScore(); }
+}
+
+// ══════════════════════════════════════════════════════
+// PLAQUE ANALYSIS + POINTS
+// ══════════════════════════════════════════════════════
+function isPlaquePixel(r,g,b,cfg){
+  // Rosa/fucsia — eritrosina
+  if(r>=cfg.minR && r>g*cfg.rOverG && r>b*cfg.rOverB) return 'pink';
+  // Blu puro — biofilm vecchio bitono
+  if(b>=cfg.minB && b>r*cfg.bOverR && b>g*cfg.bOverG) return 'blue';
+  // Viola — biofilm maturo bitono (R e B entrambi alti, G basso rispetto a entrambi)
+  if(r>=cfg.violetMinRB && b>=cfg.violetMinRB && g<r*cfg.violetMaxG && g<b*cfg.violetMaxG) return 'violet';
+  // Teal — biofilm mineralizzato tritono (G e B alti, R basso)
+  if(g>=90 && b>=90 && g>r*1.3 && b>r*1.2) return 'teal';
+  return null;
+}
+
+function analyzePlaque(imgData) {
+  const d=imgData.data, cfg=CONFIG.plaque;
+  let plaque=0, total=0;
+  for(let i=0;i<d.length;i+=4){
+    const a=d[i+3]; if(a<128){total++;continue;} total++;
+    if(isPlaquePixel(d[i],d[i+1],d[i+2],cfg)) plaque++;
+  }
+  return total>0 ? plaque/total*100 : 0;
+}
+
+function computePoints(baselinePct, verifyPct) {
+  if(baselinePct<=0) return {overlapPct:0, points:100};
+  const overlapPct = Math.min(100, verifyPct/baselinePct*100);
+  const points     = Math.max(0, Math.round((100-overlapPct)/10)*10);
+  return { overlapPct: Math.round(overlapPct), points };
+}
+
+function analyzeAndShowScore() {
+  const cBefore=document.getElementById('canvas-before');
+  const cBlend =document.getElementById('canvas-blend');
+  const img2=new Image();
+  img2.onload=()=>{
+    const W=img2.naturalWidth, H=img2.naturalHeight;
+    cBefore.width=W; cBefore.height=H; cBlend.width=W; cBlend.height=H;
+    cBefore.getContext('2d').drawImage(img2,0,0,W,H);
+    const ctx2=cBlend.getContext('2d');
+    ctx2.drawImage(img2,0,0,W,H);
+    const imgData=ctx2.getImageData(0,0,W,H);
+    const pct=analyzePlaque(imgData);
+    const cfg=CONFIG.plaque, d=imgData.data;
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+      if(a<128){d[i+3]=0;continue;}
+      const type=isPlaquePixel(r,g,b,cfg);
+      if(type==='pink')        {d[i]=255;d[i+1]=0;  d[i+2]=128;d[i+3]=200;}
+      else if(type==='blue')   {d[i]=30; d[i+1]=80; d[i+2]=255;d[i+3]=200;}
+      else if(type==='violet') {d[i]=160;d[i+1]=0;  d[i+2]=200;d[i+3]=200;}
+      else if(type==='teal')   {d[i]=0;  d[i+1]=200;d[i+2]=180;d[i+3]=200;}
+      else d[i+3]=0;
+    }
+    ctx2.putImageData(imgData,0,0);
+    renderScoreScreen(pct);
+  };
+  img2.src=_state.imgPost;
+}
+
+function renderScoreScreen(pct) {
+  const p=getProfile(_currentUid);
+  document.getElementById('score-avatar').textContent=p?p.avatar:'';
+  document.getElementById('score-name-lbl').textContent=p?p.name:'';
+  const isVerify=_state.phase==='verify';
+  const isBaseline=_state.phase==='baseline';
+  document.getElementById('score-phase-badge').textContent = getSessionLabel(_currentUid, _state.phase);
+
+  if(isVerify){
+    const bl=getUserBaseline(_currentUid);
+    const {overlapPct,points}=computePoints(bl?bl.pct:pct, pct);
+    // Controlla progresso rispetto alla verifica precedente
+    const log=getUserLog(_currentUid);
+    const prevVerifies=log.filter(e=>e.phase==='verify');
+    const prevPoints=prevVerifies.length?prevVerifies[prevVerifies.length-1].points:null;
+    const improved=prevPoints!==null && points>prevPoints;
+    const delta=improved?points-prevPoints:0;
+    // Points badge
+    document.getElementById('points-section').style.display='block';
+    document.getElementById('baseline-section').style.display='none';
+    document.getElementById('points-num').textContent=points;
+    const ptColor=points>=70?'#14532d':points>=40?'#422006':'#7f1d1d';
+    const ptText =points>=70?'#86efac':points>=40?'#fcd34d':'#fca5a5';
+    document.getElementById('points-badge').style.background=ptColor;
+    document.getElementById('points-num').style.color=ptText;
+    document.getElementById('overlap-bar-fill').style.width=overlapPct+'%';
+    document.getElementById('overlap-bar-fill').style.background=overlapPct<=30?'#22c55e':overlapPct<=60?'#f59e0b':'#ef4444';
+    document.getElementById('overlap-pct-lbl').textContent=overlapPct+'% sovrapposizione';
+    // Compare thumbs
+    document.getElementById('compare-section').style.display='block';
+    if(bl) drawThumb('canvas-baseline-thumb',bl.imgPost);
+    drawThumb('canvas-today-thumb',_state.imgPost);
+    const p=getProfile(_currentUid);
+    const name=p?p.name:'';
+    let msg='';
+    if(improved){
+      if(delta>=20) msg=`🎉 Straordinario, ${name}! +${delta} punti rispetto all'ultima volta — la tecnica sta funzionando alla grande!`;
+      else if(delta>=10) msg=`🌟 Ottimo progresso, ${name}! +${delta} punti rispetto all'ultima volta — continua così!`;
+      else msg=`👍 Brava/o ${name}! +${delta} punti rispetto all'ultima volta — stai migliorando!`;
+    } else if(prevPoints!==null && points===prevPoints){
+      msg=`Risultato stabile${name?' '+name:''} — mantieni la costanza!`;
+    } else if(prevPoints!==null && points<prevPoints){
+      msg=`Qualche zona critica questa volta — concentrati sui molari e sugli spazi interdentali`;
+    } else {
+      msg=points>=70?'Eccellente! La tecnica funziona 💪':points>=40?'Buon miglioramento, continua!':'Ancora qualche zona critica — attenzione ai molari';
+    }
+    document.getElementById('score-msg').textContent=msg;
+    _state._improved=improved; _state._delta=delta; _state._prevPoints=prevPoints; _state._points=points;
+    // Salva log
+    appendLog(_currentUid,{ts:new Date().toISOString(),phase:'verify',pct:Math.round(pct*10)/10,overlapPct,points,day:getDayNum(_currentUid)});
+  } else {
+    document.getElementById('points-section').style.display='none';
+    document.getElementById('compare-section').style.display='none';
+    document.getElementById('baseline-section').style.display='block';
+    document.getElementById('baseline-pct-lbl').textContent=Math.round(pct*10)/10+'% pixel colorati';
+    const msgs=['','Tanta placca — ottima baseline da migliorare!','Placca abbondante','Ancora tanto lavoro da fare','Nella media','Quasi a metà','Discreto','Bene!','Molto bene!','Ottimo!','Quasi perfetto!'];
+    const idx=Math.max(1,Math.min(10,Math.round(10-pct/3)));
+    document.getElementById('score-msg').textContent=msgs[idx]||'';
+    if(isBaseline && !getUserBaseline(_currentUid)){
+      setUserBaseline(_currentUid,{pct,imgPost:_state.imgPost,ts:new Date().toISOString()});
+    }
+    appendLog(_currentUid,{ts:new Date().toISOString(),phase:_state.phase,pct:Math.round(pct*10)/10,day:getDayNum(_currentUid)});
+  }
+  const btnAfter = document.getElementById('btn-after-score');
+  if (_state.phase==='verify') {
+    btnAfter.textContent = '✅ Vai ai risultati';
+  } else {
+    btnAfter.textContent = '🦷 Inizia spazzolamento →';
+  }
+  showScreen('screen-score');
+}
+
+function drawThumb(id,dataUrl){
+  const c=document.getElementById(id),img=new Image();
+  img.onload=()=>{c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);};
+  img.src=dataUrl;
+}
+
+// ══════════════════════════════════════════════════════
+// AFTER SCORE → TIMER
+// ══════════════════════════════════════════════════════
+function afterScore() {
+  // In fase verify l'utente ha già spazzolato prima — nessun timer post-score
+  // In demo il timer è sempre saltato
+  if (_state.phase==='verify' || CONFIG.demo) { finishSession(); return; }
+  const p=getProfile(_currentUid);
+  document.getElementById('timer-avatar').textContent=p?p.avatar:'';
+  document.getElementById('timer-name-lbl').textContent=p?p.name:'';
+  clearInterval(_timerInterval);
+  document.getElementById('btn-timer-start').style.display='block';
+  document.getElementById('btn-timer-skip').style.display='block';
+  document.getElementById('timer-zone').textContent='Pronto?';
+  document.getElementById('timer-seconds').textContent='2:00';
+  document.getElementById('timer-instruction').textContent='Premi Inizia quando sei pronto';
+  document.getElementById('timer-ring').style.strokeDashoffset=0;
+  for(let i=0;i<4;i++) document.getElementById('zd'+i).className='zone-dot';
+  showScreen('screen-timer');
+}
+
+function startTimer() {
+  document.getElementById('btn-timer-start').style.display='none';
+  document.getElementById('btn-timer-skip').style.display='none';
+  let elapsed=0; const total=CONFIG.brushingSec, zs=total/4;
+  const ring=document.getElementById('timer-ring');
+  _timerInterval=setInterval(()=>{
+    elapsed++;
+    const rem=total-elapsed, mm=Math.floor(rem/60), ss=rem%60;
+    document.getElementById('timer-seconds').textContent=mm+':'+String(ss).padStart(2,'0');
+    ring.style.strokeDashoffset=553*(1-elapsed/total);
+    const zone=Math.min(3,Math.floor(elapsed/zs));
+    document.getElementById('timer-zone').textContent=CONFIG.zones[zone];
+    document.getElementById('timer-instruction').textContent=ZONE_INSTR[zone];
+    for(let i=0;i<4;i++) document.getElementById('zd'+i).className='zone-dot'+(i<zone?' done':i===zone?' active':'');
+    if(elapsed>0&&elapsed%zs===0&&elapsed<total){beep(880,200);beep(1100,150,260);}
+    if(elapsed>=total){
+      clearInterval(_timerInterval);
+      beep(523,150);beep(659,150,200);beep(784,300,400);
+      for(let i=0;i<4;i++) document.getElementById('zd'+i).className='zone-dot done';
+      ring.style.stroke='var(--green)';
+      document.getElementById('timer-seconds').textContent='0:00';
+      document.getElementById('timer-zone').textContent='Completato! 🎉';
+      setTimeout(finishSession,1200);
+    }
+  },1000);
+}
+
+function skipTimer(){ clearInterval(_timerInterval); finishSession(); }
+
+function beep(freq,dur,delay=0){
+  try{
+    if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const t=_audioCtx.currentTime+delay/1000, osc=_audioCtx.createOscillator(), gain=_audioCtx.createGain();
+    osc.connect(gain);gain.connect(_audioCtx.destination);
+    osc.frequency.value=freq;osc.type='sine';
+    gain.gain.setValueAtTime(0.3,t);gain.gain.exponentialRampToValueAtTime(0.001,t+dur/1000);
+    osc.start(t);osc.stop(t+dur/1000);
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════
+// FINISH
+// ══════════════════════════════════════════════════════
+function finishSession(){
+  const p=getProfile(_currentUid), phase=_state.phase, day=getDayNum(_currentUid);
+  const log=getUserLog(_currentUid), last=log[log.length-1]||{};
+  const isChild=p&&p.type==='child';
+  const improved=phase==='verify'&&_state._improved;
+  const delta=_state._delta||0;
+  document.getElementById('done-emoji').textContent=
+    phase==='verify'?(improved&&delta>=20?'🎉':improved?'🌟':last.points>=70?'🏆':last.points>=40?'👍':'💪'):'✅';
+  let doneTitle='';
+  if(phase==='verify'&&improved){
+    doneTitle=isChild?'Sei migliorato/a!':'Ottimo progresso, '+p.name+'!';
+  } else {
+    doneTitle=isChild?(phase==='verify'&&last.points>=70?'Bravissimo/a!':'Ottimo lavoro!'):'Sessione completata!';
+  }
+  document.getElementById('done-title').textContent=doneTitle;
+  let msg='';
+  if(phase==='baseline') msg='Baseline salvata! Ripeti 2 volte al giorno per '+CONFIG.trainingDays+' giorni.';
+  else if(phase==='training') msg='Giorno '+day+'/'+CONFIG.trainingDays+' — continua così!';
+  else if(improved) msg='+'+delta+' punti rispetto all\'ultima verifica — la costanza paga!';
+  else msg='Prossima verifica tra '+CONFIG.verifyDays+' giorni.';
+  document.getElementById('done-msg').textContent=msg;
+  document.getElementById('done-summary').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="label">${phase==='verify'?'Punti':'Placca'}</div>
+        <div style="font-size:30px;font-weight:900;color:${phase==='verify'?(last.points>=70?'var(--green)':last.points>=40?'var(--amber)':'var(--red)'):'var(--blue)'}">
+          ${phase==='verify'?last.points+'pt':(100-Math.round(last.pct/3*10))+'%'}</div></div>
+      <div style="text-align:center"><div style="font-size:36px">${p?p.avatar:''}</div><div style="font-size:11px;color:var(--sub)">${p?p.name:''}</div></div>
+      <div style="text-align:right"><div class="label">Giorno</div><div style="font-size:30px;font-weight:900;color:var(--blue)">${day}</div></div>
+    </div>`;
+  showScreen('screen-done');
+}
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD (personale)
+// ══════════════════════════════════════════════════════
+let _dashUid=null;
+
+function dashBack(){ if(_currentUid)showScreen('screen-welcome');else showScreen('screen-profiles'); }
+
+function renderDashboard(){
+  const uid=_dashUid||_currentUid;
+  if(!uid){showScreen('screen-profiles');return;}
+  const p=getProfile(uid), log=getUserLog(uid), day=getDayNum(uid), streak=getStreak(uid), pts=getBestPoints(uid);
+  document.getElementById('dash-avatar').textContent=p?p.avatar:'';
+  document.getElementById('dash-info').innerHTML=`<div style="font-size:13px;color:var(--sub)">
+    ${p?p.avatar:''} <strong style="color:var(--text)">${p?p.name:''}</strong> · Giorno ${day}
+    ${streak>1?' · 🔥'+streak+' di fila':''} ${pts!=null?' · 🏆 Best: '+pts+' pt':''}
+  </div>`;
+  // Giorni
+  const byDay={};
+  log.forEach(e=>{const d=e.day||1;if(!byDay[d])byDay[d]=[];byDay[d].push(e);});
+  document.getElementById('dashboard-days').innerHTML=Array.from({length:Math.max(7,day)},(_,i)=>{
+    const d=i+1, sessions=byDay[d]||[];
+    const verSessions=sessions.filter(e=>e.phase==='verify');
+    const val=verSessions.length?verSessions[verSessions.length-1].points
+              :sessions.length?(100-Math.round(sessions[0].pct/3*10)):null;
+    const pct=val!==null?val/100*100:0;
+    const isToday=d===day, label=sessions.some(e=>e.phase==='verify')?'✓':'';
+    const color=val>=70?'#22c55e':val>=40?'#f59e0b':val!==null?'#ef4444':'#334155';
+    return `<div class="day-row">
+      <div class="day-num${isToday?' today':''}">G${d}</div>
+      <div class="day-bar-wrap"><div class="day-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div style="font-size:11px;font-weight:700;color:${color};width:36px;text-align:right">${val!==null?val+(sessions.some(e=>e.phase==='verify')?'pt':''):'–'}</div>
+      <div style="font-size:10px;color:var(--muted);width:18px;text-align:center">${label}</div>
+    </div>`;
+  }).join('');
+  drawChart(log);
+}
+
+function drawChart(log){
+  const canvas=document.getElementById('chart-canvas'), ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  if(!log.length){ctx.fillStyle='#475569';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('Nessun dato',W/2,H/2);return;}
+  const pad=20;
+  const pts=log.slice(-20).map((e,i,a)=>({
+    x:pad+(i/Math.max(a.length-1,1))*(W-pad*2),
+    y:H-pad-((e.points!=null?e.points:(100-Math.round(e.pct/3*10)))/100)*(H-pad*2),
+    v:e.points!=null?e.points:null, isVerify:e.phase==='verify'
+  }));
+  const y50=H-pad-(0.5)*(H-pad*2);
+  ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(pad,y50);ctx.lineTo(W-pad,y50);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#475569';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('50',4,y50+4);
+  ctx.strokeStyle='#3b82f6';ctx.lineWidth=2;
+  ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+  pts.forEach(p=>{
+    ctx.beginPath();ctx.arc(p.x,p.y,p.isVerify?6:4,0,Math.PI*2);
+    ctx.fillStyle=p.isVerify?'#f59e0b':'#3b82f6';ctx.fill();
+    if(p.isVerify&&p.v!=null){ctx.fillStyle='#fff';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(p.v,p.x,p.y+3);}
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// REPORT FAMIGLIA
+// ══════════════════════════════════════════════════════
+let _hygUid=null, _hygScore=null;
+
+function renderReport(){
+  const profiles=getProfiles();
+  if(!profiles.length){
+    document.getElementById('report-content').innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Nessun profilo ancora</div>';
+    document.getElementById('hygienist-section').style.display='none';
+    return;
+  }
+  document.getElementById('hygienist-section').style.display='block';
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(!_hygUid) _hygUid=profiles[0].id;
+  // Render members
+  document.getElementById('report-content').innerHTML=profiles.map(p=>{
+    const log=getUserLog(p.id), bl=getUserBaseline(p.id);
+    const verifies=log.filter(e=>e.phase==='verify');
+    const bestPts=verifies.length?Math.max(...verifies.map(e=>e.points)):null;
+    const lastVerify=verifies.length?verifies[verifies.length-1]:null;
+    const hygScore=p.hygienistScore!=null?p.hygienistScore:null;
+    const dayN=getDayNum(p.id), streak=getStreak(p.id);
+    return `<div class="report-member">
+      <div class="report-member-header">
+        <div style="font-size:36px">${p.avatar}</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:700">${p.name}</div>
+          <div style="font-size:11px;color:var(--sub)">Giorno ${dayN} ${streak>1?' · 🔥'+streak:''} · ${p.type==='child'?'👶':'👤'}</div>
+        </div>
+        ${bestPts!=null?`<div style="text-align:center"><div style="font-size:24px;font-weight:900;color:var(--amber)">🏆${bestPts}</div><div style="font-size:9px;color:var(--muted)">BEST PT</div></div>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+        <div style="background:var(--surface2);border-radius:10px;padding:10px">
+          <div style="font-size:18px;font-weight:800;color:${bl?'var(--blue)':'var(--muted)'}">${bl?Math.round(bl.pct)+'%':'–'}</div>
+          <div style="font-size:9px;color:var(--muted)">Placca baseline</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:10px">
+          <div style="font-size:18px;font-weight:800;color:${lastVerify?'var(--green-d)':'var(--muted)'}">${lastVerify?lastVerify.points+'pt':'–'}</div>
+          <div style="font-size:9px;color:var(--muted)">Ultima verifica</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:10px">
+          <div style="font-size:18px;font-weight:800;color:${hygScore!=null?(hygScore>=7?'var(--green-d)':hygScore>=4?'var(--amber)':'var(--red)'):'var(--muted)'}">${hygScore!=null?hygScore+'/10':'–'}</div>
+          <div style="font-size:9px;color:var(--muted)">Val. igienista</div>
+        </div>
+      </div>
+      ${lastVerify?`<div style="margin-top:8px;font-size:10px;color:var(--muted)">Ultima verifica: ${new Date(lastVerify.ts).toLocaleDateString('it-IT')} · sovrapposizione ${lastVerify.overlapPct}%</div>`:''}
+    </div>`;
+  }).join('');
+  // Hygienist tabs — tutti i profili
+  document.getElementById('hyg-tabs').innerHTML=profiles.map(p=>
+    `<button class="member-tab${p.id===_hygUid?' active':''}" onclick="switchHygUser('${p.id}')">${p.avatar} ${p.name}</button>`
+  ).join('');
+  renderHygScoreBtns();
+}
+
+function switchHygUser(uid){ _hygUid=uid; _hygScore=null; renderHygScoreBtns(); renderReport(); }
+
+function renderHygScoreBtns(){
+  const p=getProfile(_hygUid);
+  const cur=p&&p.hygienistScore!=null?p.hygienistScore:null;
+  document.getElementById('hyg-score-btns').innerHTML=
+    Array.from({length:11},(_,i)=>
+      `<button class="hyg-btn${i===_hygScore?' sel':''}" onclick="pickHygScore(${i})">${i}</button>`
+    ).join('');
+}
+
+function pickHygScore(val){ _hygScore=val; renderHygScoreBtns(); }
+
+function saveHygienistScore(){
+  if(_hygScore===null){alert('Seleziona un punteggio 0-10');return;}
+  const profiles=getProfiles(), p=profiles.find(x=>x.id===_hygUid);
+  if(!p) return;
+  p.hygienistScore=_hygScore; p.hygienistScoreDate=new Date().toISOString();
+  saveProfiles(profiles); _hygScore=null;
+  renderReport();
+  alert(`Valutazione ${_hygScore===null?p.hygienistScore:_hygScore}/10 salvata per ${p.name}`);
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+renderProfiles();
+</script>
+<!-- ══ COLOR INFO MODAL ══════════════════════════════════ -->
+<div id="color-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:360px;padding:20px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <button onclick="document.getElementById('color-info-modal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;line-height:1">✕</button>
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px;color:var(--text)">Colori della pastiglia</div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:16px">Guida al riconoscimento del biofilm</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:10px;padding:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#ff0080;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Rosa / Fucsia</div>
+          <div style="font-size:11px;color:var(--sub)">Eritrosina · monotono</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Placca generica — qualsiasi età</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:10px;padding:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#1e50ff;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Blu</div>
+          <div style="font-size:11px;color:var(--sub)">Bitono GBT</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Biofilm recente (≤48h)</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:10px;padding:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#a000c8;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Viola</div>
+          <div style="font-size:11px;color:var(--sub)">Bitono GBT</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Biofilm maturo (&gt;48h)</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:10px;padding:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#00c8b4;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Teal / Verde acqua</div>
+          <div style="font-size:11px;color:var(--sub)">Tritono (GC Tri Plaque ID)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Biofilm mineralizzato — tartaro iniziale</div>
+        </div>
+      </div>
+
+    </div>
+    <div style="margin-top:14px;font-size:10px;color:var(--muted);text-align:center">Tutti i colori vengono sommati nel calcolo della placca totale</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -240,7 +240,8 @@ input.name-input:focus{outline:none;border-color:var(--blue)}
         <div style="font-size:11px;color:var(--sub);margin-top:4px">secondi</div>
       </div>
     </div>
-    <p style="margin-top:16px;font-size:11px;color:var(--sub)">Poi scatta il selfie a bocca aperta</p>
+    <p id="cd-hint" style="margin-top:16px;font-size:11px;color:var(--sub)">Poi scatta il selfie a bocca aperta</p>
+    <button id="cd-camera-btn" class="btn btn-primary" onclick="openCameraFromButton()" style="display:none;margin-top:20px;font-size:17px;padding:16px">📸 Scatta selfie</button>
   </div>
 </div>
 
@@ -871,9 +872,11 @@ function proceedToCountdown() {
 function startCountdown(nextStep) {
   if (CONFIG.demo) { openCamera(nextStep); return; }
   let secs = CONFIG.countdownSec;
-  const circ = 528; // 2π×84
+  const circ = 528;
   const p = getProfile(_currentUid);
   document.getElementById('cd-avatar').textContent = p ? p.avatar : '🦷';
+  document.getElementById('cd-camera-btn').style.display = 'none';
+  document.getElementById('cd-hint').style.display = 'block';
   showScreen('screen-countdown');
   const numEl=document.getElementById('countdown-num'), ringEl=document.getElementById('cd-ring');
   numEl.textContent=secs; ringEl.style.strokeDashoffset='0';
@@ -881,9 +884,18 @@ function startCountdown(nextStep) {
   _countdownInterval=setInterval(()=>{
     secs--; numEl.textContent=secs;
     ringEl.style.strokeDashoffset = circ*(1 - secs/CONFIG.countdownSec);
-    if(secs<=0){ clearInterval(_countdownInterval); openCamera(nextStep); }
+    if(secs<=0){
+      clearInterval(_countdownInterval);
+      // iOS richiede gesto utente per getUserMedia — mostra pulsante invece di aprire auto
+      document.getElementById('countdown-num').textContent='✓';
+      document.getElementById('cd-hint').style.display = 'none';
+      document.getElementById('cd-camera-btn').style.display = 'block';
+      _instrNextStep = nextStep;
+    }
   },1000);
 }
+
+function openCameraFromButton() { openCamera(_instrNextStep); }
 
 // ══════════════════════════════════════════════════════
 // CAMERA

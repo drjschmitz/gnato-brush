@@ -176,8 +176,8 @@ input.name-input:focus{outline:none;border-color:var(--blue)}
     <div class="card" style="text-align:left">
       <div class="label">Programma</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-        <div style="display:flex;gap:10px"><span style="font-size:18px">📅</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">7 giorni training</strong> — 2× al giorno: pastiglia → selfie → spazzola</div></div>
-        <div style="display:flex;gap:10px"><span style="font-size:18px">📊</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Verifica mensile</strong> — spazzola → pastiglia → confronta con baseline</div></div>
+        <div style="display:flex;gap:10px"><span style="font-size:18px">📅</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">7 giorni training</strong> — 2× al giorno: spazzola 4 minuti guidati</div></div>
+        <div style="display:flex;gap:10px"><span style="font-size:18px">📊</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Verifica mensile</strong> — spazzola → apribocca + pastiglia → selfie → confronto</div></div>
         <div style="display:flex;gap:10px"><span style="font-size:18px">🏆</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Punti</strong> — 10 pt ogni 10% di placca in meno rispetto al Giorno 1</div></div>
       </div>
     </div>
@@ -201,23 +201,8 @@ input.name-input:focus{outline:none;border-color:var(--blue)}
       <span id="instr-avatar" style="font-size:24px"></span>
     </div>
     <div class="phase-badge" id="instr-phase-badge" style="background:var(--surface2);color:var(--blue)">Pastiglia rivelatrice</div>
-    <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-bottom:16px">
-      <div class="instr-step">
-        <div class="instr-num">1</div>
-        <div class="instr-text"><strong>Metti la pastiglia in bocca</strong> — non masticare subito, lasciala sciogliere leggermente tra lingua e palato.</div>
-      </div>
-      <div class="instr-step">
-        <div class="instr-num">2</div>
-        <div class="instr-text"><strong>Mastica lentamente per 30 secondi</strong> — distribuisci il succo rosa su tutti i denti con movimenti di lingua.</div>
-      </div>
-      <div class="instr-step">
-        <div class="instr-num">3</div>
-        <div class="instr-text"><strong>Copri tutta la bocca</strong> — superiore, inferiore, guance interne, spazio tra i denti. Aspetta altri 30 secondi.</div>
-      </div>
-      <div class="instr-step">
-        <div class="instr-num">4</div>
-        <div class="instr-text"><strong>Non sciacquare, non bere</strong> — le zone rosa sono la placca. Ora scatta il selfie a bocca aperta con buona luce.</div>
-      </div>
+    <div id="instr-steps" style="display:flex;flex-direction:column;gap:8px;width:100%;margin-bottom:16px">
+      <!-- populated by showInstructions() -->
     </div>
     <button class="btn btn-primary" onclick="proceedToCountdown()">Sciogli la pastiglia →</button>
   </div>
@@ -514,7 +499,7 @@ input.name-input:focus{outline:none;border-color:var(--blue)}
 const CONFIG = {
   demo:              false, // true = salta attese, solo per demo
   countdownSec:      60,
-  brushingSec:       120,  // timer post-baseline (2 min)
+  brushingSec:       240,  // timer post-baseline (4 min)
   brushingVerifySec: 240,  // timer pre-verifica (4 min)
   trainingDays:  7,
   verifyDays:    28,   // giorni tra una verifica mensile e la successiva
@@ -811,8 +796,12 @@ function startBrushGuideTimer() {
 
 function brushGuideDone() {
   clearInterval(_bgTimerInterval);
-  // Dopo lo spazzolamento: istruzioni pastiglia → countdown → selfie
-  showInstructions('post');
+  if (_state.phase === 'training') {
+    finishTrainingNoSelfie();
+  } else {
+    // verify: istruzioni apribocca + pastiglia → countdown → selfie
+    showInstructions('post');
+  }
 }
 
 function showBaselineChoice() {
@@ -831,6 +820,37 @@ function baselineAtHome() {
   showInstructions('post');
 }
 
+function finishTrainingNoSelfie() {
+  const p = getProfile(_currentUid);
+  const day = getDayNum(_currentUid);
+  const streak = getStreak(_currentUid);
+  appendLog(_currentUid, {ts: new Date().toISOString(), phase: 'training', day});
+  const isChild = p && p.type === 'child';
+  const congrats = [
+    'Ottimo lavoro! La costanza è la chiave 🦷',
+    'Bravissimo/a! Stai costruendo buone abitudini 💪',
+    'Perfetto! Ogni sessione conta 🌟',
+    'Eccellente! La tua bocca ti ringrazierà 😁',
+    'Fantastico! Sei a metà programma — non mollare! 🏅',
+    'Incredibile! Quasi ci siamo 🔥',
+    'Completato! Sei arrivato alla fine del training 🏆',
+  ];
+  const msg = congrats[Math.min(day - 1, congrats.length - 1)];
+  document.getElementById('done-emoji').textContent = day <= 2 ? '🦷' : day <= 4 ? '⭐' : day <= 6 ? '🔥' : '🏆';
+  document.getElementById('done-title').textContent = isChild ? 'Ottimo lavoro!' : 'Sessione completata!';
+  document.getElementById('done-msg').textContent = `Giorno ${day}/${CONFIG.trainingDays}${streak > 1 ? ' · 🔥 ' + streak + ' di fila' : ''} — ${msg}`;
+  document.getElementById('done-summary').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="text-align:center"><div class="label">Durata</div>
+        <div style="font-size:30px;font-weight:900;color:var(--blue)">4:00</div></div>
+      <div style="text-align:center"><div style="font-size:36px">${p ? p.avatar : ''}</div>
+        <div style="font-size:11px;color:var(--sub)">${p ? p.name : ''}</div></div>
+      <div style="text-align:right"><div class="label">Giorno</div>
+        <div style="font-size:30px;font-weight:900;color:var(--blue)">${day}</div></div>
+    </div>`;
+  showScreen('screen-done');
+}
+
 function startVerifyNow() {
   _state = { phase:'verify', step:null, imgPre:null, imgPost:null, stream:null };
   showBrushGuide();
@@ -847,7 +867,14 @@ function startSession() {
   }
 }
 
-function abortSession() { stopCamera(); showScreen('screen-welcome'); }
+function abortSession() {
+  if (!confirm('Sei sicuro? La bocca potrebbe non essere ben pulita!')) return;
+  stopCamera();
+  clearInterval(_timerInterval);
+  clearInterval(_bgTimerInterval);
+  clearInterval(_countdownInterval);
+  showScreen('screen-welcome');
+}
 
 // ══════════════════════════════════════════════════════
 // INSTRUCTIONS SCREEN
@@ -859,6 +886,24 @@ function showInstructions(nextStep) {
   const p = getProfile(_currentUid);
   document.getElementById('instr-avatar').textContent = p ? p.avatar : '';
   document.getElementById('instr-phase-badge').textContent = getSessionLabel(_currentUid, _state.phase);
+
+  const isVerify = _state.phase === 'verify';
+  const steps = isVerify ? [
+    ['Posiziona l\'apribocca', 'inseriscilo comodamente tra le arcate superiore e inferiore per tenere la bocca aperta durante il selfie.'],
+    ['Metti la pastiglia rivelatrice in bocca', 'lasciala sciogliere leggermente tra lingua e palato — non masticare subito.'],
+    ['Mastica lentamente per 30 secondi', 'distribuisci il succo colorato su tutti i denti con movimenti di lingua.'],
+    ['Copri tutta la bocca', 'superiore, inferiore, guance interne, spazi tra i denti. Aspetta altri 30 secondi.'],
+    ['Non sciacquare, non bere', 'le zone colorate sono la placca. Ora scatta il selfie a bocca aperta con l\'apribocca posizionato e buona luce.'],
+  ] : [
+    ['Metti la pastiglia in bocca', 'non masticare subito, lasciala sciogliere leggermente tra lingua e palato.'],
+    ['Mastica lentamente per 30 secondi', 'distribuisci il succo rosa su tutti i denti con movimenti di lingua.'],
+    ['Copri tutta la bocca', 'superiore, inferiore, guance interne, spazio tra i denti. Aspetta altri 30 secondi.'],
+    ['Non sciacquare, non bere', 'le zone rosa sono la placca. Ora scatta il selfie a bocca aperta con buona luce.'],
+  ];
+  document.getElementById('instr-steps').innerHTML = steps.map((s, i) =>
+    `<div class="instr-step"><div class="instr-num">${i+1}</div><div class="instr-text"><strong>${s[0]}</strong> — ${s[1]}</div></div>`
+  ).join('');
+
   showScreen('screen-instructions');
 }
 
@@ -912,14 +957,23 @@ function openCamera(step) {
   document.getElementById('camera-sublabel').textContent=l.sub;
   document.getElementById('cam-avatar').textContent=p?p.avatar:'';
   showScreen('screen-camera');
-  const constraints = {video:{facingMode:{ideal:'user'}},audio:false};
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Fotocamera non disponibile su questo browser.\nAssicurati di usare HTTPS.');
+    return;
+  }
+  const startStream = stream => {
+    _state.stream = stream;
+    const v = document.getElementById('camera-video');
+    v.srcObject = stream;
+    v.play().catch(() => {});
+  };
+  const constraints = {video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720}},audio:false};
   navigator.mediaDevices.getUserMedia(constraints)
-    .then(stream=>{ _state.stream=stream; document.getElementById('camera-video').srcObject=stream; })
-    .catch(()=>{
-      // fallback: qualsiasi fotocamera disponibile
+    .then(startStream)
+    .catch(() => {
       navigator.mediaDevices.getUserMedia({video:true,audio:false})
-        .then(stream=>{ _state.stream=stream; document.getElementById('camera-video').srcObject=stream; })
-        .catch(err=>alert('Fotocamera non disponibile:\n'+err.message));
+        .then(startStream)
+        .catch(err => alert('Fotocamera non disponibile:\n'+err.message));
     });
 }
 
@@ -1091,7 +1145,7 @@ function afterScore() {
   document.getElementById('btn-timer-start').style.display='block';
   document.getElementById('btn-timer-skip').style.display='block';
   document.getElementById('timer-zone').textContent='Pronto?';
-  document.getElementById('timer-seconds').textContent='2:00';
+  document.getElementById('timer-seconds').textContent='4:00';
   document.getElementById('timer-instruction').textContent='Premi Inizia quando sei pronto';
   document.getElementById('timer-ring').style.strokeDashoffset=0;
   for(let i=0;i<4;i++) document.getElementById('zd'+i).className='zone-dot';
@@ -1196,7 +1250,7 @@ function renderDashboard(){
     const d=i+1, sessions=byDay[d]||[];
     const verSessions=sessions.filter(e=>e.phase==='verify');
     const val=verSessions.length?verSessions[verSessions.length-1].points
-              :sessions.length?(100-Math.round(sessions[0].pct/3*10)):null;
+              :(sessions.length&&sessions[0].pct!=null)?(100-Math.round(sessions[0].pct/3*10)):null;
     const pct=val!==null?val/100*100:0;
     const isToday=d===day, label=sessions.some(e=>e.phase==='verify')?'✓':'';
     const color=val>=70?'#22c55e':val>=40?'#f59e0b':val!==null?'#ef4444':'#334155';

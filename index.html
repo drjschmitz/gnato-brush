@@ -176,9 +176,9 @@ input.name-input:focus{outline:none;border-color:var(--blue)}
     <div class="card" style="text-align:left">
       <div class="label">Programma</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-        <div style="display:flex;gap:10px"><span style="font-size:18px">📅</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">7 giorni training</strong> — 2× al giorno: spazzola 4 minuti guidati</div></div>
+        <div style="display:flex;gap:10px"><span style="font-size:18px">📅</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Training quotidiano</strong> — sessioni illimitate: spazzola 4 minuti guidati</div></div>
         <div style="display:flex;gap:10px"><span style="font-size:18px">📊</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Verifica mensile</strong> — spazzola → apribocca + pastiglia → selfie → confronto</div></div>
-        <div style="display:flex;gap:10px"><span style="font-size:18px">🏆</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Punti</strong> — 10 pt ogni 10% di placca in meno rispetto al Giorno 1</div></div>
+        <div style="display:flex;gap:10px"><span style="font-size:18px">🎯</span><div style="font-size:12px;color:var(--sub)"><strong style="color:var(--text)">Punti training</strong> — 1 pt ogni 2 sessioni completate nella stessa giornata</div></div>
       </div>
     </div>
     <button class="btn btn-primary" onclick="startSession()" style="margin-top:20px;font-size:17px;padding:18px">▶ Inizia sessione</button>
@@ -539,29 +539,30 @@ function getPhase(uid) {
   const bl = getUserBaseline(uid);
   if (!bl) return 'baseline';
   if (CONFIG.demo) {
-    // In demo: dopo la baseline è subito disponibile la verifica
     const log = getUserLog(uid);
-    const verifies = log.filter(e=>e.phase==='verify');
-    if (!verifies.length) return 'verify';
-    // Dopo ogni verifica demo torna subito disponibile la successiva
-    return 'verify';
+    return log.filter(e=>e.phase==='verify').length ? 'verify' : 'verify';
   }
   const log = getUserLog(uid);
-  const day = getDayNum(uid);
-  if (day <= CONFIG.trainingDays) return 'training';
   const verifies = log.filter(e=>e.phase==='verify');
-  if (!verifies.length) return 'verify';
-  const lastVerify = new Date(verifies[verifies.length-1].ts);
-  const daysSince = (Date.now()-lastVerify)/86400000;
+  // Training è sempre disponibile; verifica ogni verifyDays dall'ultima (o dalla baseline)
+  const refDate = verifies.length
+    ? new Date(verifies[verifies.length-1].ts)
+    : new Date(bl.ts);
+  const daysSince = (Date.now() - refDate) / 86400000;
   return daysSince >= CONFIG.verifyDays ? 'verify' : 'training';
 }
 
 function getDayNum(uid) {
   const log = getUserLog(uid);
   if (!log.length) return 1;
-  const first = new Date(log[0].ts); first.setHours(0,0,0,0);
-  const now   = new Date();           now.setHours(0,0,0,0);
-  return Math.floor((now-first)/86400000)+1;
+  // Riparte da 1 dopo ogni verifica mensile
+  const verifies = log.filter(e => e.phase === 'verify');
+  const ref = verifies.length
+    ? new Date(verifies[verifies.length-1].ts)
+    : new Date(log[0].ts);
+  ref.setHours(0,0,0,0);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.floor((now - ref) / 86400000) + 1;
 }
 
 function getStreak(uid) {
@@ -579,6 +580,19 @@ function getBestPoints(uid) {
   const log = getUserLog(uid);
   const vs = log.filter(e=>e.phase==='verify'&&e.points!=null);
   return vs.length ? Math.max(...vs.map(e=>e.points)) : null;
+}
+
+function getTotalPoints(uid) {
+  return getUserLog(uid).reduce((s, e) => s + (e.points || 0), 0);
+}
+
+function getTodayTrainingCount(uid) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  return getUserLog(uid).filter(e => {
+    if (e.phase !== 'training') return false;
+    const d = new Date(e.ts); d.setHours(0,0,0,0);
+    return d.getTime() === t.getTime();
+  }).length;
 }
 
 // ══════════════════════════════════════════════════════
@@ -601,13 +615,13 @@ let _newMemberEmoji = AVATARS[0], _newMemberType = 'adult';
 function renderProfiles() {
   const profiles = getProfiles();
   document.getElementById('profile-grid').innerHTML = profiles.map(p => {
-    const streak = getStreak(p.id);
-    const pts    = getBestPoints(p.id);
-    const log    = getUserLog(p.id);
-    const today  = log.filter(e=>new Date(e.ts).toDateString()===new Date().toDateString()).length;
+    const streak  = getStreak(p.id);
+    const totalPts = getTotalPoints(p.id);
+    const log     = getUserLog(p.id);
+    const today   = log.filter(e=>new Date(e.ts).toDateString()===new Date().toDateString()).length;
     return `<div class="profile-card" onclick="selectProfile('${p.id}')">
       ${streak>1?`<div class="profile-streak">🔥${streak}</div>`:''}
-      ${pts!=null?`<div class="profile-pts">🏆${pts}</div>`:''}
+      ${totalPts>0?`<div class="profile-pts">🎯${totalPts}</div>`:''}
       <div class="profile-avatar">${p.avatar}</div>
       <div class="profile-name">${p.name}</div>
       <div class="profile-sub">${today?today+'× oggi':log.length?log.length+' sessioni':'Inizia!'}</div>
@@ -668,7 +682,8 @@ function selectProfile(uid) {
   if (phase==='baseline') {
     statusEl.innerHTML = `<span style="color:var(--sub);font-size:13px">Prima sessione — creeremo la tua baseline 📍</span>${demoBadge}`;
   } else if (phase==='training') {
-    statusEl.innerHTML = `<span style="font-size:13px;color:var(--sub)">Giorno <strong style="color:var(--text)">${day}</strong> / ${CONFIG.trainingDays} ${streak>1?'· 🔥'+streak:''}${pts!=null?' · 🏆'+pts+' pt':''}</span>${demoBadge}`;
+    const totalPts = getTotalPoints(uid);
+    statusEl.innerHTML = `<span style="font-size:13px;color:var(--sub)">Giorno <strong style="color:var(--text)">${day}</strong> ${streak>1?'· 🔥'+streak:''} · 🎯 <strong style="color:var(--amber)">${totalPts} pt</strong></span>${demoBadge}`;
   } else {
     statusEl.innerHTML = `<span style="font-size:13px;color:var(--amber);font-weight:700">📅 Verifica mensile disponibile!</span>${demoBadge}`;
   }
@@ -824,29 +839,29 @@ function finishTrainingNoSelfie() {
   const p = getProfile(_currentUid);
   const day = getDayNum(_currentUid);
   const streak = getStreak(_currentUid);
-  appendLog(_currentUid, {ts: new Date().toISOString(), phase: 'training', day});
+  // Conta le sessioni di oggi PRIMA di loggare quella corrente
+  const countToday = getTodayTrainingCount(_currentUid) + 1; // inclusa questa
+  const earnedPoint = countToday % 2 === 0;
+  const points = earnedPoint ? 1 : 0;
+  appendLog(_currentUid, {ts: new Date().toISOString(), phase: 'training', day, points});
+  const totalPts = getTotalPoints(_currentUid);
   const isChild = p && p.type === 'child';
-  const congrats = [
-    'Ottimo lavoro! La costanza è la chiave 🦷',
-    'Bravissimo/a! Stai costruendo buone abitudini 💪',
-    'Perfetto! Ogni sessione conta 🌟',
-    'Eccellente! La tua bocca ti ringrazierà 😁',
-    'Fantastico! Sei a metà programma — non mollare! 🏅',
-    'Incredibile! Quasi ci siamo 🔥',
-    'Completato! Sei arrivato alla fine del training 🏆',
-  ];
-  const msg = congrats[Math.min(day - 1, congrats.length - 1)];
-  document.getElementById('done-emoji').textContent = day <= 2 ? '🦷' : day <= 4 ? '⭐' : day <= 6 ? '🔥' : '🏆';
-  document.getElementById('done-title').textContent = isChild ? 'Ottimo lavoro!' : 'Sessione completata!';
-  document.getElementById('done-msg').textContent = `Giorno ${day}/${CONFIG.trainingDays}${streak > 1 ? ' · 🔥 ' + streak + ' di fila' : ''} — ${msg}`;
+  let pointMsg = earnedPoint
+    ? `🎯 +1 punto! Totale: ${totalPts} pt`
+    : `Ancora 1 sessione oggi per guadagnare un punto (${countToday} su 2)`;
+  document.getElementById('done-emoji').textContent = earnedPoint ? '🎯' : streak > 3 ? '🔥' : '✅';
+  document.getElementById('done-title').textContent = isChild
+    ? (earnedPoint ? 'Punto guadagnato!' : 'Ottimo lavoro!')
+    : (earnedPoint ? 'Punto guadagnato!' : 'Sessione completata!');
+  document.getElementById('done-msg').textContent = `Giorno ${day}${streak > 1 ? ' · 🔥 ' + streak + ' di fila' : ''} — ${pointMsg}`;
   document.getElementById('done-summary').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div style="text-align:center"><div class="label">Durata</div>
-        <div style="font-size:30px;font-weight:900;color:var(--blue)">4:00</div></div>
+      <div style="text-align:center"><div class="label">Oggi</div>
+        <div style="font-size:30px;font-weight:900;color:var(--blue)">${countToday}×</div></div>
       <div style="text-align:center"><div style="font-size:36px">${p ? p.avatar : ''}</div>
         <div style="font-size:11px;color:var(--sub)">${p ? p.name : ''}</div></div>
-      <div style="text-align:right"><div class="label">Giorno</div>
-        <div style="font-size:30px;font-weight:900;color:var(--blue)">${day}</div></div>
+      <div style="text-align:right"><div class="label">Punti totali</div>
+        <div style="font-size:30px;font-weight:900;color:var(--amber)">${totalPts}</div></div>
     </div>`;
   showScreen('screen-done');
 }

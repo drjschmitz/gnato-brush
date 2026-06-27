@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gnato Brush</string>
+    <string name="title_activity_main">Gnato Brush</string>
+    <string name="package_name">com.gnatobrush.app</string>
+    <string name="custom_url_scheme">com.gnatobrush.app</string>
+</resources>

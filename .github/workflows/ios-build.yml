@@ -63,7 +63,7 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
-           - name: Build archive
+      - name: Build archive
         run: |
           xcodebuild \
             -workspace ios/App/App.xcworkspace \
@@ -75,6 +75,7 @@ jobs:
             "App:DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" \
             "App:PROVISIONING_PROFILE_SPECIFIER=${{ secrets.PROVISIONING_PROFILE_NAME }}" \
             "App:CODE_SIGN_IDENTITY=Apple Distribution"
+
       - name: Export IPA
         run: |
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'

@@ -40,6 +40,13 @@ jobs:
           sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' "$PBXPROJ"
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
 
+      - name: Disable Pod code signing
+        run: |
+          PODFILE="ios/App/Podfile"
+          if ! grep -q "CODE_SIGNING_ALLOWED" "$PODFILE"; then
+            sed -i '' 's/assertDeploymentTarget(installer)/assertDeploymentTarget(installer)\n  installer.pods_project.targets.each do |t|\n    t.build_configurations.each do |c|\n      c.build_settings["CODE_SIGNING_ALLOWED"] = "NO"\n    end\n  end/' "$PODFILE"
+          fi
+
       - name: Install CocoaPods
         run: |
           cd ios/App

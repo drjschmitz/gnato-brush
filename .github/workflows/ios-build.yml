@@ -33,6 +33,29 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync ios
 
+      - name: Configure code signing in project
+        run: |
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          # Set ProvisioningStyle to Manual for App target
+          sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' "$PBXPROJ"
+          # In App Release config (504EC3181FED79650016851F): replace CODE_SIGN_STYLE = Automatic with Manual + add team/profile
+          sed -i '' '/504EC3181FED79650016851F \/\* Release \*\//,/name = Release;/{
+            s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;\
+\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\
+\t\t\t\tDEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }};\
+\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "${{ secrets.PROVISIONING_PROFILE_NAME }}";/g
+          }' "$PBXPROJ"
+
+      - name: Configure Podfile for CI signing
+        run: |
+          # Add CODE_SIGNING_ALLOWED=NO for all Pod targets so they don't need profiles
+          sed -i '' 's/post_install do |installer|/post_install do |installer|\
+  installer.pods_project.targets.each do |target|\
+    target.build_configurations.each do |config|\
+      config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"\
+    end\
+  end/' ios/App/Podfile
+
       - name: Install CocoaPods
         run: |
           cd ios/App
@@ -71,10 +94,10 @@ jobs:
             -configuration Release \
             -archivePath $RUNNER_TEMP/App.xcarchive \
             archive \
-            "App:CODE_SIGN_STYLE=Manual" \
-            "App:DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" \
-            "App:PROVISIONING_PROFILE_SPECIFIER=${{ secrets.PROVISIONING_PROFILE_NAME }}" \
-            "App:CODE_SIGN_IDENTITY=Apple Distribution"
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}" \
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
       - name: Export IPA
         run: |

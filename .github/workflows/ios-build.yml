@@ -139,7 +139,7 @@ jobs:
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 30
 
-            - name: Upload to TestFlight
+      - name: Upload to TestFlight
         if: ${{ github.event_name == 'push' || inputs.upload_testflight == 'true' }}
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}

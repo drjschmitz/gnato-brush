@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-          
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -33,28 +33,12 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync ios
 
-            - name: Configure code signing in project
+      - name: Configure code signing in project
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-          
-      - name: Disable Pod code signing
-        run: |
-          cat > /tmp/fix_podfile.py << 'PYEOF'
-          with open('ios/App/Podfile') as f:
-              content = f.read()
-          patch = (
-              "\n  installer.pods_project.targets.each do |t|\n"
-              "    t.build_configurations.each do |c|\n"
-              "      c.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'\n"
-              "    end\n"
-              "  end"
-          )
-          content = content.replace('assertDeploymentTarget(installer)', 'assertDeploymentTarget(installer)' + patch)
-          with open('ios/App/Podfile', 'w') as f:
-              f.write(content)
-          PYEOF
-          python3 /tmp/fix_podfile.py
+          sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' "$PBXPROJ"
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
 
       - name: Install CocoaPods
         run: |

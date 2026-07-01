@@ -2,8 +2,9 @@
   "appId": "com.gnatobrush.app",
   "appName": "Gnato Brush",
   "webDir": "www",
-  "server": {
-    "androidScheme": "https"
+"server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
   },
   "plugins": {
     "SplashScreen": {

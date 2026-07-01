@@ -972,11 +972,44 @@ function openCamera(step) {
   document.getElementById('camera-label').textContent=l.label;
   document.getElementById('camera-sublabel').textContent=l.sub;
   document.getElementById('cam-avatar').textContent=p?p.avatar:'';
+
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    const { Camera } = window.Capacitor.Plugins;
+    Camera.getPhoto({
+      quality: 85,
+      allowEditing: false,
+      resultType: 'dataUrl',
+      source: 'CAMERA',
+      direction: 'FRONT',
+      presentationStyle: 'fullscreen'
+    }).then(photo => {
+      const dataUrl = photo.dataUrl;
+      if (_state.step === 'post') { _state.imgPost = dataUrl; analyzeAndShowScore(); }
+    }).catch(err => {
+      console.warn('Camera error:', err);
+    });
+    return;
+  }
   showScreen('screen-camera');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert('Fotocamera non disponibile su questo browser.\nAssicurati di usare HTTPS.');
     return;
   }
+  const startStream = stream => {
+    _state.stream = stream;
+    const v = document.getElementById('camera-video');
+    v.srcObject = stream;
+    v.play().catch(() => {});
+  };
+  const constraints = {video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720}},audio:false};
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(startStream)
+    .catch(() => {
+      navigator.mediaDevices.getUserMedia({video:true,audio:false})
+        .then(startStream)
+        .catch(err => alert('Fotocamera non disponibile:\n'+err.message));
+    });
+}
   const startStream = stream => {
     _state.stream = stream;
     const v = document.getElementById('camera-video');

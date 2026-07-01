@@ -990,11 +990,27 @@ function openCamera(step) {
     });
     return;
   }
+
   showScreen('screen-camera');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert('Fotocamera non disponibile su questo browser.\nAssicurati di usare HTTPS.');
     return;
   }
+  const startStream = stream => {
+    _state.stream = stream;
+    const v = document.getElementById('camera-video');
+    v.srcObject = stream;
+    v.play().catch(() => {});
+  };
+  const constraints = {video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720}},audio:false};
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(startStream)
+    .catch(() => {
+      navigator.mediaDevices.getUserMedia({video:true,audio:false})
+        .then(startStream)
+        .catch(err => alert('Fotocamera non disponibile:\n'+err.message));
+    });
+}
   const startStream = stream => {
     _state.stream = stream;
     const v = document.getElementById('camera-video');
